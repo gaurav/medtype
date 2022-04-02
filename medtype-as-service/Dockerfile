@@ -42,6 +42,11 @@ RUN pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.4
 # We need pip to set up Python packages.
 RUN pip install --upgrade pip
 
+# We install some packages just for debugging purposes.
+RUN conda install -c anaconda git
+RUN conda install -c conda-forge screen
+RUN conda install -c conda-forge htop
+
 # Copy the source code to /opt/medtype-as-service
 WORKDIR /opt/medtype-as-service
 COPY . /opt/medtype-as-service
