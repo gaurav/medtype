@@ -47,6 +47,7 @@ RUN conda install -c anaconda git
 RUN conda install -c conda-forge screen
 RUN conda install -c conda-forge htop
 RUN conda install -c conda-forge vim
+RUN conda install -c conda-forge jq
 
 # Copy the source code to /opt/medtype-as-service
 WORKDIR /opt/medtype-as-service
