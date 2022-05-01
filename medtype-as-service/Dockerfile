@@ -4,6 +4,7 @@
 # - dev: None as yet
 # - 1.0 (2022-01-21): Initial release.
 # - 1.1 (2022-02-06): Fixed some permission issues; installed transformers from conda.
+# - 1.2 (2022-05-01): Added some debugging tools.
 
 # Use anaconda for prerequisites.
 FROM conda/miniconda3
