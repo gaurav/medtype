@@ -2,6 +2,7 @@
 #
 # Changelog:
 # - dev: None as yet
+#	- Added 'rsync', changed ownership of source files.
 # - 1.0 (2022-01-21): Initial release.
 # - 1.1 (2022-02-06): Fixed some permission issues; installed transformers from conda.
 # - 1.2 (2022-05-01): Added some debugging tools.
@@ -49,17 +50,7 @@ RUN conda install -c conda-forge screen
 RUN conda install -c conda-forge htop
 RUN conda install -c conda-forge vim
 RUN conda install -c conda-forge jq
-
-# Copy the source code to /opt/medtype-as-service
-WORKDIR /opt/medtype-as-service
-COPY . /opt/medtype-as-service
-
-# Install MedType Server requirements
-# We do this through Conda earlier in this file.
-# RUN pip install -r server/requirements.txt
-
-# Setup MedType as service
-RUN bash setup.sh
+RUN conda install -c conda-forge rsync
 
 # Create a user so we're not running MedType as a root user.
 # Note that we create two directories in this Docker:
@@ -71,7 +62,17 @@ RUN bash setup.sh
 # That way, you can set up your volumes as needed to ensure both
 # directories have the space they need.
 RUN useradd -U -m medtype -d /opt/medtype
-USER medtype
+
+# Copy the source code to /opt/medtype-as-service
+WORKDIR /opt/medtype-as-service
+COPY --chown=medtype . /opt/medtype-as-service
+
+# Install MedType Server requirements
+# We do this through Conda earlier in this file.
+# RUN pip install -r server/requirements.txt
+
+# Setup MedType as service
+RUN bash setup.sh
 
 # Predownload some scispacy files.
 RUN mkdir -p /opt/medtype/.scispacy/datasets
@@ -81,6 +82,9 @@ ADD --chown=medtype 'https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/data/lin
 ADD --chown=medtype 'https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/data/linkers/2020-10-09/umls/concept_aliases.json' /opt/medtype/.scispacy/datasets/1428ec15d3b1061731ea273c03699130b3d6b90948993e74bda66af605ff8e2a.aeb7a686c654df6bccb6c2c23d3eda3eb381daaefda4592b58158d0bee53b352.concept_aliases.json
 ADD --chown=medtype 'https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/data/kbs/2020-10-09/umls_2020_aa_cat0129.jsonl' /opt/medtype/.scispacy/datasets/4d7fb8fcae1035d1e0a47d9072b43d5a628057d35497fbfb2499b4b7b2dd4dd7.05ec7eef12f336d4666da85b7fa69b9401883a7dd4244473f7b88b413ccbba03.umls_2020_aa_cat0129.jsonl
 ADD --chown=medtype 'https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/data/umls_semantic_type_tree.tsv' /opt/medtype/.scispacy/datasets/21a1012c532c3a431d60895c509f5b4d45b0f8966c4178b892190a302b21836f.330707f4efe774134872b9f77f0e3208c1d30f50800b3b39a6b8ec21d9adf1b7.umls_semantic_type_tree.tsv
+
+# Switch to the medtype user for running stuff.
+USER medtype
 
 # Run MedType server
 EXPOSE 8125/tcp
