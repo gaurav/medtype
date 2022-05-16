@@ -50,6 +50,7 @@ RUN conda install -c conda-forge screen
 RUN conda install -c conda-forge htop
 RUN conda install -c conda-forge vim
 RUN conda install -c conda-forge jq
+RUN conda install -c conda-forge openssh
 RUN conda install -c conda-forge rsync
 
 # Create a user so we're not running MedType as a root user.
@@ -65,6 +66,7 @@ RUN useradd -U -m medtype -d /opt/medtype
 
 # Copy the source code to /opt/medtype-as-service
 WORKDIR /opt/medtype-as-service
+RUN chown medtype:medtype /opt/medtype-as-service
 COPY --chown=medtype . /opt/medtype-as-service
 
 # Install MedType Server requirements
