@@ -4,7 +4,6 @@ import multiprocessing, threading, os, random, sys, json, time, numpy as np, pic
 
 from itertools import chain
 from datetime import datetime
-from time import time
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 from nltk.tokenize.punkt import PunktSentenceTokenizer
@@ -588,7 +587,7 @@ class MedTypeWorkers(Process):
 					client_id, raw_msg	= sock.recv_multipart()
 					message			= jsonapi.loads(raw_msg)
 					logger.info('new job\tsocket: %d\tsize: %d\tlinker: %s\tclient: %s' % (sock_idx, len(message['text']), message['entity_linker'], client_id))
-					job_start_time  = time.time.ns()
+					job_start_time  = time.time.time.ns()
 
 					if message['entity_linker'] in self.ent_linker:
 						elinks = []
@@ -602,7 +601,7 @@ class MedTypeWorkers(Process):
 
 					sink_embed.send_multipart([client_id, jsonapi.dumps(filt_elinks), ServerCmd.elink_out], copy=True, track=False)
 
-					time_taken_ms = float(time.time_ns() - job_start_time)/1000
+					time_taken_ms = float(time.time.time_ns() - job_start_time)/1000
 					logger.info('job done\tsize: %s\tclient: %s\ttime taken: %d ms' % (len(filt_elinks), client_id, time_taken_ms))
 
 
