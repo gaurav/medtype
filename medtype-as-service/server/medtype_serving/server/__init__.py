@@ -503,13 +503,13 @@ class MedTypeWorkers(Process):
 			start_idx = i * self.batch_size
 			yield self.pad_data(data_list[start_idx : start_idx + self.batch_size])
 
-	def filter_candidates(self, elinks, logger):
+	def filter_candidates(self, elinks, logger, start_time):
 		out = ddict(lambda: ddict(dict))
 
 		with torch.no_grad():
 
 			for batch in self.get_batches(elinks):
-				logger.info(f"Processing batch: {batch}")
+				logger.info(f"({(time.time_ns() - start_time)/1000000} ms) Processing batch")
 
 				logits = self.model(
 						input_ids	= batch[0], 
@@ -522,16 +522,16 @@ class MedTypeWorkers(Process):
 				for i, ele in enumerate(batch[3]):
 					out[ele['text_id']][ele['men_id']] = set([self.id2type[x] for x in np.where(preds[i])[0]])
 
-				logger.info(f"Completed batch {batch} with output: {out}")
+				logger.info(f"({(time.time_ns() - start_time)/1000000} ms) Completed batch {batch} with output: {out}")
 
 		filt_elinks = []
 		for t_id, ele in enumerate(elinks):
-			logger.info(f"Enumerating through element {t_id}: {ele}")
+			logger.info(f"({(time.time_ns() - start_time)/1000000} ms) Enumerating through element {t_id}: {ele}")
 			mentions = []
 			for m_id, men in enumerate(ele['mentions']):
 				men['pred_type'] = out[t_id][m_id]
 
-				logger.info(f"Filtering mention {men} to predicted type {men['pred_type']}")
+				logger.info(f"({(time.time_ns() - start_time)/1000000} ms) Filtering mention {men} to predicted type {men['pred_type']}")
 
 				# No filtering when predicted type is NA
 				if len(men['pred_type']) == 0:  
@@ -544,7 +544,7 @@ class MedTypeWorkers(Process):
 				men['pred_type'] = list(men['pred_type'])	# set is not JSON serializable
 				mentions.append(men)
 
-			logger.info(f"Enumerated through element {t_id}: {ele}")
+			logger.info(f"({(time.time_ns() - start_time)/1000000} ms) Enumerated through element {t_id}: {ele}")
 
 			ele['mentions'] = mentions
 			filt_elinks.append(ele)
@@ -601,7 +601,7 @@ class MedTypeWorkers(Process):
 						elinks = []
 						for text in message['text']:
 							elinks.append(self.ent_linker[message['entity_linker']](text))
-						filt_elinks = self.filter_candidates(elinks, logger)
+						filt_elinks = self.filter_candidates(elinks, logger, job_start_time)
 					else:
 						logger.info('Requested linker %s from \tsocket: %d\tclient: %s not loaded on server' % (message['entity_linker'], sock_idx, client_id))
 						elinks = []
@@ -609,7 +609,7 @@ class MedTypeWorkers(Process):
 
 					sink_embed.send_multipart([client_id, jsonapi.dumps(filt_elinks), ServerCmd.elink_out], copy=True, track=False)
 
-					time_taken_ms = float(time.time_ns() - job_start_time)/1000
+					time_taken_ms = float(time.time_ns() - job_start_time)/100000
 					logger.info('job done\tsize: %s\tclient: %s\ttime taken: %d ms' % (len(filt_elinks), client_id, time_taken_ms))
 
 
