@@ -503,12 +503,13 @@ class MedTypeWorkers(Process):
 			start_idx = i * self.batch_size
 			yield self.pad_data(data_list[start_idx : start_idx + self.batch_size])
 
-	def filter_candidates(self, elinks):
+	def filter_candidates(self, elinks, logger):
 		out = ddict(lambda: ddict(dict))
 
 		with torch.no_grad():
 
 			for batch in self.get_batches(elinks):
+				logger.info(f"Processing batch: {batch}")
 
 				logits = self.model(
 						input_ids	= batch[0], 
@@ -521,11 +522,16 @@ class MedTypeWorkers(Process):
 				for i, ele in enumerate(batch[3]):
 					out[ele['text_id']][ele['men_id']] = set([self.id2type[x] for x in np.where(preds[i])[0]])
 
+				logger.info(f"Completed batch {batch} with output: {out}")
+
 		filt_elinks = []
 		for t_id, ele in enumerate(elinks):
+			logger.info(f"Enumerating through element {t_id}: {ele}")
 			mentions = []
 			for m_id, men in enumerate(ele['mentions']):
 				men['pred_type'] = out[t_id][m_id]
+
+				logger.info(f"Filtering mention {men} to predicted type {men['pred_type']}")
 
 				# No filtering when predicted type is NA
 				if len(men['pred_type']) == 0:  
@@ -537,6 +543,8 @@ class MedTypeWorkers(Process):
 
 				men['pred_type'] = list(men['pred_type'])	# set is not JSON serializable
 				mentions.append(men)
+
+			logger.info(f"Enumerated through element {t_id}: {ele}")
 
 			ele['mentions'] = mentions
 			filt_elinks.append(ele)
@@ -593,7 +601,7 @@ class MedTypeWorkers(Process):
 						elinks = []
 						for text in message['text']:
 							elinks.append(self.ent_linker[message['entity_linker']](text))
-						filt_elinks = self.filter_candidates(elinks)
+						filt_elinks = self.filter_candidates(elinks, logger)
 					else:
 						logger.info('Requested linker %s from \tsocket: %d\tclient: %s not loaded on server' % (message['entity_linker'], sock_idx, client_id))
 						elinks = []
